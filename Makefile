@@ -1,8 +1,12 @@
 TARGET_EXEC := main
 
+CURL_CFLAGS := $(shell pkg-config --cflags libcurl)
+CURL_LIBS   := $(shell pkg-config --libs libcurl)
+
 CC := gcc
 CFLAGS := -Wall -Wextra
-CPPFLAGS := -Isrc -Ilib
+CPPFLAGS := -Isrc -Ilib $(CURL_CFLAGS)
+LDLIBS := $(CURL_LIBS)
 
 BUILD_DIR := build
 SRC_DIR := src
@@ -12,24 +16,25 @@ SRC     := $(wildcard $(SRC_DIR)/*.c)
 LIB_SRC := $(wildcard $(LIB_DIR)/*/*.c)
 
 SRC_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/src/%.o,$(SRC))
-LIB_OBJS := $(patsubst $(LIB_DIR)/%/%.c,$(BUILD_DIR)/lib/%/%.o,$(LIB_SRC))
+LIB_OBJS := $(patsubst $(LIB_DIR)/%.c,$(BUILD_DIR)/lib/%.o,$(LIB_SRC))
 OBJS := $(SRC_OBJS) $(LIB_OBJS)
 
 .PHONY: all clean
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 $(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
-	@mkdir -p $(sort $(dir $(OBJS)))
+	@mkdir -p $@
 
 $(BUILD_DIR)/src/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/lib/%/%.o: $(LIB_DIR)/%/%.c | $(BUILD_DIR)
+$(BUILD_DIR)/lib/%.o: $(LIB_DIR)/%.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS) | $(BUILD_DIR)
-	$(CC) $(OBJS) -o $@
+	$(CC) $(OBJS) -o $@ $(LDLIBS)
 
 clean:
 	rm -rf $(BUILD_DIR)
