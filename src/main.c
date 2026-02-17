@@ -3,8 +3,7 @@
 #include <stdlib.h>
 #include <cjson/cJSON.h>
 #include <curl/curl.h>
-
-void get_request(CURL *handle, char *host_url);
+#include "curl_util.h"
 
 int main() {
     char *filename = "data/speedtest_server_list.json";
@@ -36,10 +35,15 @@ int main() {
     server = cJSON_GetArrayItem(servers, 1);
     cJSON *host = cJSON_GetObjectItemCaseSensitive(server, "host");
     char *host_url = host->valuestring;
-    printf("Host: %s\n", host_url);
     
     CURL *handle = curl_easy_init();
-    get_request(handle, host_url);
+    
+    double speedGet = get_request(handle, host_url);
+    printf("GET REQUEST SPEED %.2f Mb/s\n", speedGet);
+
+
+    double speedPost = get_request(handle, host_url);
+    printf("POST REQUEST SPEED %.2f Mb/s\n", speedPost);
    // cJSON_ArrayForEach(server, servers)
    // {
    //     cJSON *country = cJSON_GetObjectItemCaseSensitive(server, "country");
@@ -49,13 +53,5 @@ int main() {
     exit(0);
 }
 
-void get_request(CURL *handle, char *host_url)
-{
-    curl_easy_reset(handle);
-    curl_easy_setopt(handle, CURLOPT_URL, host_url);
-    curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
-    CURLcode success = curl_easy_perform(handle);
-    printf("Something %d\n", success);
-}
 
 
