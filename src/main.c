@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <cjson/cJSON.h>
 #include <curl/curl.h>
-#include "curl_util.h"
+#include "speed_test.h"
 
 int main() {
     char *filename = "data/speedtest_server_list.json";
@@ -38,11 +38,10 @@ int main() {
     
     CURL *handle = curl_easy_init();
     
-    double speedGet = get_request(handle, host_url);
+    double speedGet = speed_test(handle, DOWNLOAD, host_url);
     printf("GET REQUEST SPEED %.2f Mb/s\n", speedGet);
 
-
-    double speedPost = get_request(handle, host_url);
+    double speedPost = speed_test(handle, UPLOAD, host_url);
     printf("POST REQUEST SPEED %.2f Mb/s\n", speedPost);
    // cJSON_ArrayForEach(server, servers)
    // {
