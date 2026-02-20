@@ -6,85 +6,84 @@
 #include <string.h>
 #include "curl_util.h"
 #include "speed_test.h"
+#include "file_util.h"
 
 #define DOWNLOAD_ENDPOINT "/random4000x4000.jpg"
 #define UPLOAD_ENDPOINT "/upload"
-#define POST_SIZE 100000000
+#define POST_SIZE (15LL * 1024 * 1024 * 1024 * 100)
+#define LOCATION_API_URL "http://ip-api.com/json/"
 
-double _download_test(CURL *handle, const char *host_url);
-double _upload_test(CURL *handle, const char *host_url);
+SpeedTestParams* _get_speed_test_params(SPEED_TEST_TYPE type);
+FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle);
 
 static double calculate_speed_megabits(curl_off_t speed) {
     return speed / 1024.0 / 1024.0 * 8;
 }
 
-double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
+SpeedTestParams* _get_speed_test_params(SPEED_TEST_TYPE type)
 {
+    SpeedTestParams *speed_test_params = (SpeedTestParams*)malloc(sizeof(SpeedTestParams));
     switch (type) {
-        case DOWNLOAD: 
-            return _download_test(handle, host_url);
+        case DOWNLOAD:
+            speed_test_params->speed_type = CURLINFO_SPEED_DOWNLOAD_T;
+            speed_test_params->endpoint = DOWNLOAD_ENDPOINT;
+            break;
         case UPLOAD:
-            return _upload_test(handle, host_url);
+            speed_test_params->speed_type = CURLINFO_SPEED_UPLOAD_T;
+            speed_test_params->endpoint = UPLOAD_ENDPOINT;
+            break;
         default:
-            printf("Invalid speed test type of %d\n", type);
-            return 0L;
-    }	
+            printf("Unrecognized speed test type %d\n", type);
+            free(speed_test_params);
+            return NULL;
+    }
+    return speed_test_params;
 }
 
 
-double _download_test(CURL *handle, const char *host_url)
+FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
 {
-    char *filename = "/dev/null";
+    FILE *fp = NULL;
+    switch (type) {
+        case DOWNLOAD:
+            fp = _open_file_safe("/dev/null", "wb");
+
+            curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
+            curl_easy_setopt(handle, CURLOPT_WRITEDATA, fp);
+            break;
+        case UPLOAD:
+            fp = _open_file_safe("/dev/zero", "rb");
+
+            curl_easy_setopt(handle, CURLOPT_POST, 1L);
+            curl_easy_setopt(handle, CURLOPT_READDATA, fp);
+            curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)POST_SIZE);
+            break;
+        default:
+            printf("Unrecognized speed test type %d\n", type);
+            break;
+    }
+    return fp;
+}
+
+double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
+{
+    SpeedTestParams *speed_test_params = _get_speed_test_params(type);
+
+    if (NULL == speed_test_params) return 0.0;
+    
     char url[1024];
     curl_off_t speed = 0.0;
-    snprintf(url, sizeof(url), "%s%s", host_url, DOWNLOAD_ENDPOINT);
-
-    FILE *fp = fopen(filename, "w");
-    if (!fp) {
-        printf("Could not open file %s\n", filename);
-        fclose(fp);
-        exit(1);
-    }
+    snprintf(url, sizeof(url), "%s%s", host_url, speed_test_params->endpoint);
 
     set_common_opts(handle, url);
-
-    curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
-    curl_easy_setopt(handle, CURLOPT_WRITEDATA, fp);
+    FILE *fp = _set_specific_opts(type, handle);
 
     CURLcode res_code = perform_request_safe_ignore_timeout(handle);
  
-    res_code = get_info_safe(handle, CURLINFO_SPEED_DOWNLOAD_T, res_code, &speed);
+    res_code = get_info_safe(handle, speed_test_params->speed_type, res_code, &speed);
 
-    return calculate_speed_megabits(speed);
-}
-
-double _upload_test(CURL *handle, const char *host_url)
-{
-    char *filename = "/dev/zero";
-    char url[1024];
-    curl_off_t speed = 0.0;
-    snprintf(url, sizeof(url), "%s%s", host_url, UPLOAD_ENDPOINT);
-
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        printf("Could not open file %s\n", filename);
-        fclose(fp);
-        exit(1);
-    }
-
-    char *payload = (char*)malloc((size_t)POST_SIZE + 1);
-    fread(payload, sizeof(char), POST_SIZE, fp);
-    fclose(fp);
-    payload[POST_SIZE] = '\0';
-
-    set_common_opts(handle, url);
-
-    curl_easy_setopt(handle, CURLOPT_POST, 1L);
-    curl_easy_setopt(handle, CURLOPT_POSTFIELDS, payload);
-
-    CURLcode res_code = perform_request_safe_ignore_timeout(handle);
-    
-    res_code = get_info_safe(handle, CURLINFO_SPEED_UPLOAD_T, res_code, &speed);
+    free(speed_test_params);
+    if (fp) fclose(fp);
 
     return calculate_speed_megabits(speed);
 }
