@@ -4,6 +4,7 @@
 #include <cjson/cJSON.h>
 #include <curl/curl.h>
 #include "speed_test.h"
+#include "location.h"
 
 int main() {
     char *filename = "data/speedtest_server_list.json";
@@ -37,14 +38,14 @@ int main() {
     char *host_url = host->valuestring;
     
     CURL *handle = curl_easy_init();
+    Location* location = find_location(handle);
+    printf("User location: city %s; country %s; provider %s\n", location->city, location->country, location->provider);
     
-    find_location(handle);
-    
-    // double speedGet = speed_test(handle, DOWNLOAD, host_url);
-    // printf("GET REQUEST SPEED %.2f Mb/s\n", speedGet);
+    double speedGet = speed_test(handle, DOWNLOAD, host_url);
+    printf("GET REQUEST SPEED %.2f Mb/s\n", speedGet);
 
-    // double speedPost = speed_test(handle, UPLOAD, host_url);
-    // printf("POST REQUEST SPEED %.2f Mb/s\n", speedPost);
+    double speedPost = speed_test(handle, UPLOAD, host_url);
+    printf("POST REQUEST SPEED %.2f Mb/s\n", speedPost);
    // cJSON_ArrayForEach(server, servers)
    // {
    //     cJSON *country = cJSON_GetObjectItemCaseSensitive(server, "country");

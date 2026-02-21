@@ -10,7 +10,6 @@
 #define DOWNLOAD_ENDPOINT "/random4000x4000.jpg"
 #define UPLOAD_ENDPOINT "/upload"
 #define POST_SIZE (15LL * 1024 * 1024 * 1024 * 100)
-#define LOCATION_API_URL "http://ip-api.com/json/"
 
 SpeedTestParams* _get_speed_test_params(SPEED_TEST_TYPE type);
 FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle);
@@ -81,15 +80,4 @@ double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
     return calculate_speed_megabits(speed);
 }
 
-void find_location(CURL *handle)
-{
-    Response response = { 0 };
-
-    set_common_opts(handle, LOCATION_API_URL);
-    set_get_request_opts(handle, (void*)&response);
-    
-    CURLcode res_code = perform_request_safe_ignore_timeout(handle);
-
-    printf("Response status: %d\n Response text: %s\n", res_code, response.response_body);
-}
 

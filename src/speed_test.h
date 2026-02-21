@@ -14,6 +14,5 @@ typedef struct {
 } SpeedTestParams;
 
 double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url);
-void find_location(CURL *handle);
 
 #endif

@@ -58,17 +58,29 @@ void set_common_opts(CURL *handle, char *url)
     curl_easy_setopt(handle, CURLOPT_URL, url);
     curl_easy_setopt(handle, CURLOPT_USERAGENT, CURL_USER_AGENT);
     curl_easy_setopt(handle, CURLOPT_TIMEOUT, CURL_TIMEOUT);
+    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 0L);
 }
 
 CURLcode get_info_safe(CURL *handle, CURLINFO speed_type, CURLcode res_code, void *info)
 {
     res_code = curl_easy_getinfo(handle, speed_type, info);
-    if (res_code != CURLE_OK) {
+    if (CURLE_OK != res_code) {
         printf("Failed to get download speed: %s\n", curl_easy_strerror(res_code));
     }
 
     return res_code;
 } 
+
+CURLcode perform_request_safe(CURL *handle)
+{
+    CURLcode res_code = curl_easy_perform(handle);
+    if (CURLE_OK != res_code) {
+        printf("Failed to make a GET request with CURL: %s\n", curl_easy_strerror(res_code));
+        return res_code;
+    }
+
+    return CURLE_OK;
+}
 
 CURLcode perform_request_safe_ignore_timeout(CURL *handle)
 {
