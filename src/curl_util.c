@@ -58,7 +58,6 @@ void set_common_opts(CURL *handle, char *url)
     curl_easy_setopt(handle, CURLOPT_URL, url);
     curl_easy_setopt(handle, CURLOPT_USERAGENT, CURL_USER_AGENT);
     curl_easy_setopt(handle, CURLOPT_TIMEOUT, CURL_TIMEOUT);
-    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 0L);
 }
 
 CURLcode get_info_safe(CURL *handle, CURLINFO speed_type, CURLcode res_code, void *info)

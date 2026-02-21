@@ -1,8 +1,8 @@
 #include <curl/curl.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "curl_util.h"
 #include "speed_test.h"
 #include "file_util.h"
@@ -11,31 +11,27 @@
 #define UPLOAD_ENDPOINT "/upload"
 #define POST_SIZE (15LL * 1024 * 1024 * 1024 * 100)
 
-SpeedTestParams* _get_speed_test_params(SPEED_TEST_TYPE type);
+bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint);
 FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle);
 
 static double calculate_speed_megabits(curl_off_t speed) {
     return speed / 1024.0 / 1024.0 * 8;
 }
 
-SpeedTestParams* _get_speed_test_params(SPEED_TEST_TYPE type)
+bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint)
 {
-    SpeedTestParams *speed_test_params = (SpeedTestParams*)malloc(sizeof(SpeedTestParams));
     switch (type) {
         case DOWNLOAD:
-            speed_test_params->speed_type = CURLINFO_SPEED_DOWNLOAD_T;
-            speed_test_params->endpoint = DOWNLOAD_ENDPOINT;
-            break;
+            *info = CURLINFO_SPEED_DOWNLOAD_T;
+            *endpoint = DOWNLOAD_ENDPOINT;
+            return true;
         case UPLOAD:
-            speed_test_params->speed_type = CURLINFO_SPEED_UPLOAD_T;
-            speed_test_params->endpoint = UPLOAD_ENDPOINT;
-            break;
+            *info = CURLINFO_SPEED_UPLOAD_T;
+            *endpoint = UPLOAD_ENDPOINT;
+            return true;
         default:
-            printf("Unrecognized speed test type %d\n", type);
-            free(speed_test_params);
-            return NULL;
+            return false;
     }
-    return speed_test_params;
 }
 
 FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
@@ -51,7 +47,6 @@ FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
             set_post_request_opts_file(handle, fp, (curl_off_t)POST_SIZE);
             break;
         default:
-            printf("Unrecognized speed test type %d\n", type);
             break;
     }
     return fp;
@@ -59,22 +54,25 @@ FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
 
 double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
 {
-    SpeedTestParams *speed_test_params = _get_speed_test_params(type);
-
-    if (NULL == speed_test_params) return 0.0;
-    
     char url[1024];
-    curl_off_t speed = 0.0;
-    snprintf(url, sizeof(url), "%s%s", host_url, speed_test_params->endpoint);
+    curl_off_t speed;
+    CURLINFO speed_type;
+    const char* endpoint;
+
+    bool params_ok = _get_speed_test_params(type, &speed_type, &endpoint);
+
+    if (!params_ok) return 0.0;
+    
+    snprintf(url, sizeof(url), "%s%s", host_url, endpoint);
 
     set_common_opts(handle, url);
+    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 0L);
     FILE *fp = _set_specific_opts(type, handle);
 
     CURLcode res_code = perform_request_safe_ignore_timeout(handle);
  
-    res_code = get_info_safe(handle, speed_test_params->speed_type, res_code, &speed);
+    res_code = get_info_safe(handle, speed_type, res_code, &speed);
 
-    free(speed_test_params);
     if (fp) fclose(fp);
 
     return calculate_speed_megabits(speed);

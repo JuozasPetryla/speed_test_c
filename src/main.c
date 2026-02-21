@@ -5,15 +5,12 @@
 #include <curl/curl.h>
 #include "speed_test.h"
 #include "location.h"
+#include "file_util.h"
 
 int main() {
     char *filename = "data/speedtest_server_list.json";
 
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        printf("Could not open file %s\n", filename);
-        exit(1);
-    }
+    FILE *fp = _open_file_safe(filename, "r");
 
     fseek(fp, 0, SEEK_END);
     long len = ftell(fp);
@@ -28,11 +25,11 @@ int main() {
     cJSON *server = NULL;
 
     servers = cJSON_Parse(buffer);
-
     if (!servers) {
         printf("Could not parse JSON");
         exit(1);
     }
+
     server = cJSON_GetArrayItem(servers, 1);
     cJSON *host = cJSON_GetObjectItemCaseSensitive(server, "host");
     char *host_url = host->valuestring;
