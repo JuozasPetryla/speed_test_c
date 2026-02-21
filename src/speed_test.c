@@ -1,5 +1,4 @@
 #include <curl/curl.h>
-#include <curl/easy.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,23 +39,17 @@ SpeedTestParams* _get_speed_test_params(SPEED_TEST_TYPE type)
     return speed_test_params;
 }
 
-
 FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
 {
     FILE *fp = NULL;
     switch (type) {
         case DOWNLOAD:
             fp = _open_file_safe("/dev/null", "wb");
-
-            curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
-            curl_easy_setopt(handle, CURLOPT_WRITEDATA, fp);
+            set_get_request_opts_file(handle, fp);
             break;
         case UPLOAD:
             fp = _open_file_safe("/dev/zero", "rb");
-
-            curl_easy_setopt(handle, CURLOPT_POST, 1L);
-            curl_easy_setopt(handle, CURLOPT_READDATA, fp);
-            curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)POST_SIZE);
+            set_post_request_opts_file(handle, fp, (curl_off_t)POST_SIZE);
             break;
         default:
             printf("Unrecognized speed test type %d\n", type);
@@ -86,5 +79,17 @@ double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
     if (fp) fclose(fp);
 
     return calculate_speed_megabits(speed);
+}
+
+void find_location(CURL *handle)
+{
+    Response response = { 0 };
+
+    set_common_opts(handle, LOCATION_API_URL);
+    set_get_request_opts(handle, (void*)&response);
+    
+    CURLcode res_code = perform_request_safe_ignore_timeout(handle);
+
+    printf("Response status: %d\n Response text: %s\n", res_code, response.response_body);
 }
 

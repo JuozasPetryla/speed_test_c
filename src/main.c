@@ -38,11 +38,13 @@ int main() {
     
     CURL *handle = curl_easy_init();
     
-    double speedGet = speed_test(handle, DOWNLOAD, host_url);
-    printf("GET REQUEST SPEED %.2f Mb/s\n", speedGet);
+    find_location(handle);
+    
+    // double speedGet = speed_test(handle, DOWNLOAD, host_url);
+    // printf("GET REQUEST SPEED %.2f Mb/s\n", speedGet);
 
-    double speedPost = speed_test(handle, UPLOAD, host_url);
-    printf("POST REQUEST SPEED %.2f Mb/s\n", speedPost);
+    // double speedPost = speed_test(handle, UPLOAD, host_url);
+    // printf("POST REQUEST SPEED %.2f Mb/s\n", speedPost);
    // cJSON_ArrayForEach(server, servers)
    // {
    //     cJSON *country = cJSON_GetObjectItemCaseSensitive(server, "country");

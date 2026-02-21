@@ -3,10 +3,48 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "curl_util.h"
 
 #define CURL_USER_AGENT "curl/8.15.0"
 #define CURL_TIMEOUT 15
 
+static size_t _write_callback(char *data, size_t size, size_t nmemb, void *user_data)
+{
+  size_t realsize = nmemb * size;
+  Response *res = (Response*)user_data;
+ 
+  char *ptr = realloc(res->response_body, res->size + realsize + 1);
+  if(!ptr)
+    return 0;
+ 
+  res->response_body = ptr;
+  memcpy(&(res->response_body[res->size]), data, realsize);
+  res->size += realsize;
+  res->response_body[res->size] = 0;
+ 
+  return realsize;
+}
+
+void set_get_request_opts_file(CURL *handle, FILE *fp)
+{
+    curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, fp);
+}
+
+void set_get_request_opts(CURL *handle, void *ptr)
+{
+    curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, _write_callback);
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, ptr);
+}
+
+void set_post_request_opts_file(CURL *handle, FILE *fp, curl_off_t size)
+{
+    curl_easy_setopt(handle, CURLOPT_POST, 1L);
+    curl_easy_setopt(handle, CURLOPT_READDATA, fp);
+    curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE_LARGE, size);
+}
 
 void set_common_opts(CURL *handle, char *url)
 {
