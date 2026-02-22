@@ -9,11 +9,9 @@ ServerArray* init_server_array(size_t init_capacity)
 {
     ServerArray *array = malloc(sizeof(ServerArray));
 
-    printf("Size of init server array %d\n",sizeof(Server*) * init_capacity); 
     array->server = malloc(sizeof(Server*) * init_capacity);
     array->size = 0;
     array->capacity = init_capacity;
-    printf("Array initialized\n");
 
     return array;
 }
@@ -34,7 +32,6 @@ void append_to_server_array(
 
     Server *s = create_server(country, city, provider, host, id);
 
-    printf("Size of server ptr%d\n",sizeof(Server*)); 
     array->server[array->size] = s;
     array->size++;
 }

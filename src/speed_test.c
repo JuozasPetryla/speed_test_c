@@ -1,4 +1,5 @@
 #include <curl/curl.h>
+#include <float.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -79,34 +80,45 @@ double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
     return calculate_speed_megabits(speed);
 }
 
-Server* best_server_by_location(
-    CURL *handle, 
-    Server server_list[], 
-    int server_count, 
-    Location *location
-)
+double _get_server_latency(CURL *handle, char *host_url)
+{
+    FILE *fp = _open_file_safe("/dev/null", "wb");
+
+    set_common_opts(handle, host_url);
+    set_get_request_opts_file(handle, fp);
+
+    CURLcode res_code = perform_request_safe(handle);
+
+    curl_off_t total_time;
+    res_code = get_info_safe(handle, CURLINFO_TOTAL_TIME_T, res_code, &total_time);
+
+    return total_time;
+
+}
+
+Server* best_server_by_location(CURL *handle, ServerArray *server_array, Location *location)
 {
     if (!location || (!location->city && !location->country)) {
-        printf("No location provided");
+        printf("No location provided\n");
         return NULL;
     }
 
-    double max = 0.0;
+    double min = DBL_MAX;
     Server *best_server = NULL;
 
-    for (int i = 0; i < server_count; i++) {
-        Server *server = &server_list[i];
-        double max_curr = 0.0;
+    for (int i = 0; i < (int)server_array->size; i++) {
+        Server *server = server_array->server[i];
+        double min_curr = 0.0;
         if (
-            location->city == server->location->city ||
-            location->country == server->location->country
+            strcmp(location->city, server->location->city) == 0 ||
+            strcmp(location->country, server->location->country) == 0
         ) {
-            max_curr += speed_test(handle, DOWNLOAD, server->host);
-            max_curr += speed_test(handle, UPLOAD, server->host);
-        }
-        if (max_curr > max) {
-            max = max_curr;
-            best_server = server;
+            min_curr = _get_server_latency(handle, server->host);
+            printf("Server host %s time %.2f\n", server->host, min_curr);
+            if (min_curr < min) {
+                min = min_curr;
+                best_server = server;
+            }
         }
     }
 

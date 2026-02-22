@@ -35,8 +35,6 @@ int main() {
         exit(1);
     }
 
-    size_t count = 0;
-
     cJSON_ArrayForEach(server_json, servers_json)
     {
         cJSON *country = cJSON_GetObjectItemCaseSensitive(server_json, "country");
@@ -53,15 +51,15 @@ int main() {
                 host->valuestring, 
                 id->valueint
         );
-        count++;
     }
-    printf("Count %d\n", count);
-
     
     CURL *handle = curl_easy_init();
-    Location* location = find_location(handle);
+    Location *location = find_location(handle);
     printf("User location: city %s; country %s; provider %s\n", location->city, location->country, location->provider);
     
+    Server* best_server = best_server_by_location(handle, servers, location);
+    printf("Best server for %s -> host %s; id %d", location->city, best_server->host, best_server->id);
+
 
     exit(0);
 }

@@ -10,12 +10,7 @@ typedef enum {
 	UPLOAD
 } SPEED_TEST_TYPE;
 
-typedef struct {
-    const char *endpoint;
-    CURLINFO speed_type;
-} SpeedTestParams;
-
 double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url);
-Server* best_server_by_location(CURL *handle, Server server_list[], int server_count, Location *location);
+Server* best_server_by_location(CURL *handle, ServerArray *server_array, Location *location);
 
 #endif
