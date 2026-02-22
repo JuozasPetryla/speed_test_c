@@ -8,13 +8,13 @@
 
 #define LOCATION_API_URL "http://ip-api.com/json/"
 
-Location* create_location(const char* country, const char* city, const char* provider)
+Location* create_location(const char *country, const char *city, const char *provider)
 {
     Location* location = (Location*)malloc(sizeof(Location));
 
-    location->country = (char*)malloc(sizeof(strlen(country) + 1));
-    location->city = (char*)malloc(sizeof(strlen(city) + 1));
-    location->provider = (char*)malloc(sizeof(strlen(provider) + 1));
+    location->country = (char*)malloc(strlen(country) + 1);
+    location->city = (char*)malloc(strlen(city) + 1);
+    location->provider = (char*)malloc(strlen(provider) + 1);
 
     strcpy(location->country, country);
     strcpy(location->city, city);
@@ -58,7 +58,7 @@ Location* find_location(CURL *handle)
     cJSON *city = cJSON_GetObjectItemCaseSensitive(location_json, "city");
     cJSON *isp = cJSON_GetObjectItemCaseSensitive(location_json, "isp");
 
-    Location* location = create_location(country->valuestring, city->valuestring, isp->valuestring);
+    Location *location = create_location(country->valuestring, city->valuestring, isp->valuestring);
 
     return location;
 }

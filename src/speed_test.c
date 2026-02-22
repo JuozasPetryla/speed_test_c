@@ -6,6 +6,7 @@
 #include "curl_util.h"
 #include "speed_test.h"
 #include "file_util.h"
+#include "server.h"
 
 #define DOWNLOAD_ENDPOINT "/random4000x4000.jpg"
 #define UPLOAD_ENDPOINT "/upload"
@@ -57,7 +58,7 @@ double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
     char url[1024];
     curl_off_t speed;
     CURLINFO speed_type;
-    const char* endpoint;
+    const char *endpoint;
 
     bool params_ok = _get_speed_test_params(type, &speed_type, &endpoint);
 
@@ -76,6 +77,40 @@ double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
     if (fp) fclose(fp);
 
     return calculate_speed_megabits(speed);
+}
+
+Server* best_server_by_location(
+    CURL *handle, 
+    Server server_list[], 
+    int server_count, 
+    Location *location
+)
+{
+    if (!location || (!location->city && !location->country)) {
+        printf("No location provided");
+        return NULL;
+    }
+
+    double max = 0.0;
+    Server *best_server = NULL;
+
+    for (int i = 0; i < server_count; i++) {
+        Server *server = &server_list[i];
+        double max_curr = 0.0;
+        if (
+            location->city == server->location->city ||
+            location->country == server->location->country
+        ) {
+            max_curr += speed_test(handle, DOWNLOAD, server->host);
+            max_curr += speed_test(handle, UPLOAD, server->host);
+        }
+        if (max_curr > max) {
+            max = max_curr;
+            best_server = server;
+        }
+    }
+
+    return best_server;
 }
 
 
