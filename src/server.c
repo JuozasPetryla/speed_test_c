@@ -20,7 +20,6 @@ void append_to_server_array(
     ServerArray *array,
     const char *country,
     const char *city,
-    const char *provider,
     const char *host,
     int id
 )
@@ -30,7 +29,7 @@ void append_to_server_array(
         array->server = realloc(array->server, array->capacity * sizeof(Server*));
     }
 
-    Server *s = create_server(country, city, provider, host, id);
+    Server *s = create_server(country, city, host, id);
 
     array->server[array->size] = s;
     array->size++;
@@ -51,14 +50,13 @@ void destroy_server_array(ServerArray *array)
 Server* create_server(
 	const char *country, 
 	const char *city, 
-	const char *provider,
 	const char *host,
 	int id
 )
 {
     Server *server = (Server*)malloc(sizeof(Server));
 
-    server->location = create_location(country, city, provider);
+    server->location = create_location(country, city);
     server->host = (char*)malloc(strlen(host) + 1);
     server->id = id;
 

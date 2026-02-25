@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "curl_util.h"
 #include "speed_test.h"
 #include "file_util.h"
@@ -15,6 +16,7 @@
 
 bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint);
 FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle);
+double _get_server_latency(CURL *handle, char *host_url);
 
 static double calculate_speed_megabits(curl_off_t speed) {
     return speed / 1024.0 / 1024.0 * 8;
@@ -54,6 +56,21 @@ FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
     return fp;
 }
 
+double _get_server_latency(CURL *handle, char *host_url)
+{
+    FILE *fp = _open_file_safe("/dev/null", "wb");
+
+    set_common_opts(handle, host_url);
+    set_get_request_opts_file(handle, fp);
+
+    CURLcode res_code = perform_request_safe(handle);
+
+    curl_off_t total_time;
+    res_code = get_info_safe(handle, CURLINFO_TOTAL_TIME_T, res_code, &total_time);
+
+    return total_time;
+}
+
 double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
 {
     char url[1024];
@@ -80,22 +97,6 @@ double speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
     return calculate_speed_megabits(speed);
 }
 
-double _get_server_latency(CURL *handle, char *host_url)
-{
-    FILE *fp = _open_file_safe("/dev/null", "wb");
-
-    set_common_opts(handle, host_url);
-    set_get_request_opts_file(handle, fp);
-
-    CURLcode res_code = perform_request_safe(handle);
-
-    curl_off_t total_time;
-    res_code = get_info_safe(handle, CURLINFO_TOTAL_TIME_T, res_code, &total_time);
-
-    return total_time;
-
-}
-
 Server* best_server_by_location(CURL *handle, ServerArray *server_array, Location *location)
 {
     if (!location || (!location->city && !location->country)) {
@@ -106,6 +107,7 @@ Server* best_server_by_location(CURL *handle, ServerArray *server_array, Locatio
     double min = DBL_MAX;
     Server *best_server = NULL;
 
+    printf("Finding the best server in %s, %s...\n", location->city, location->country);
     for (int i = 0; i < (int)server_array->size; i++) {
         Server *server = server_array->server[i];
         double min_curr = 0.0;
@@ -114,12 +116,16 @@ Server* best_server_by_location(CURL *handle, ServerArray *server_array, Locatio
             strcmp(location->country, server->location->country) == 0
         ) {
             min_curr = _get_server_latency(handle, server->host);
-            printf("Server host %s time %.2f\n", server->host, min_curr);
             if (min_curr < min) {
                 min = min_curr;
                 best_server = server;
             }
         }
+    }
+
+    if (!best_server) {
+        printf("No server found for location\n");
+        exit(1);
     }
 
     return best_server;

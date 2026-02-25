@@ -18,7 +18,6 @@ typedef struct {
 Server* create_server(
 	const char *country, 
 	const char *city, 
-	const char *provider, 
 	const char *host, 
 	int id
 );
@@ -26,7 +25,6 @@ void append_to_server_array(
     	ServerArray *array,
 	const char *country, 
 	const char *city, 
-	const char *provider,
 	const char *host,
 	int id
 );

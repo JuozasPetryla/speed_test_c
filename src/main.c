@@ -14,6 +14,10 @@
 #define SERVER_LIST_FILENAME "data/speedtest_server_list.json"
 
 ServerArray* _parse_server_list();
+Location* _find_location(CURL *handle);
+Location* _set_location(CURL *handle, const char *city, const char *country);
+void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, ServerArray* servers, const char *city, const char *country);
+Server* _find_best_server_by_location(CURL *handle, ServerArray* servers, const char *city, const char *country);
 
 typedef struct {
     bool a_flag;
@@ -25,14 +29,13 @@ typedef struct {
     bool C_flag;
 } OptFlags;
 
-// TODO: Control flow for options
 int main(int argc, char *argv[]) 
 {
     OptFlags opt_flags = { false, false, false, false, false, false, false };
 
     int opt;
-    char* country;
-    char* city;
+    const char *country = NULL;
+    const char *city = NULL;
     while((opt = getopt(argc, argv, "ahlbC:c:d::u::")) != -1) 
     { 
         switch(opt) 
@@ -76,39 +79,24 @@ int main(int argc, char *argv[])
 
     ServerArray *servers = _parse_server_list();
 
+
     if (opt_flags.l_flag) {
-        Location *location = find_location(handle);
-        printf(
-            "User location: City - %s; Country - %s; Internet service provider - %s\n", 
-            location->city, 
-            location->country, 
-            location->provider
-        );
+        Location *location = _find_location(handle);
+        destroy_location(location);
     }
 
-    // TODO: handle server selection by location, default to current location
+
     if (opt_flags.d_flag) {
-        char* host_url = servers->server[1]->host;
-        printf("host_URL\n");
-        double speed = speed_test(handle, DOWNLOAD, host_url);
-        printf("Download speed for host %s - %.2f Mb/s\n", host_url, speed);
+        _perform_speed_test(handle, DOWNLOAD, servers, city, country);
     }
 
     if (opt_flags.u_flag) {
-        char* host_url = servers->server[1]->host;
-        double speed = speed_test(handle, UPLOAD, host_url);
-        printf("Upload speed for host %s - %.2f Mb/s\n", host_url, speed);
+        _perform_speed_test(handle, UPLOAD, servers, city, country);
     }
 
     if (opt_flags.b_flag) {
-        Location *location;
-        if (opt_flags.c_flag || opt_flags.C_flag) {
-            location = create_location(country, city, NULL);
-        } else {
-            location = find_location(handle);
-        }
-        Server* best_server = best_server_by_location(handle, servers, location);
-        printf("Best server in location %s, %s - %s\n", location->city, location->country, best_server->host);
+        Server *best_server = _find_best_server_by_location(handle, servers, city, country); 
+        destroy_server(best_server);
     }
 
     destroy_server_array(servers);
@@ -116,7 +104,47 @@ int main(int argc, char *argv[])
     exit(0);
 }
 
+Server* _find_best_server_by_location(CURL *handle, ServerArray* servers, const char *city, const char *country)
+{
+    Location *location = _set_location(handle, city, country);
+    Server* best_server = best_server_by_location(handle, servers, location);
+    printf("Best server in location %s, %s - %s\n", location->city, location->country, best_server->host);
+    return best_server;
+}
 
+void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, ServerArray* servers, const char *city, const char *country)
+{
+    Server *server = _find_best_server_by_location(handle, servers, city, country);
+    char *host_url = server->host;
+    double speed = speed_test(handle, type, host_url);
+    printf("BLANK_FILL_TYPE speed for host %s - %.2f Mb/s\n", host_url, speed);
+}
+
+Location* _set_location(CURL *handle, const char *city, const char *country)
+{
+    Location *location;
+    if (city || country)
+    {
+        location = create_location(country, city);
+    } else {
+        location = _find_location(handle);
+    }
+    
+    return location;
+}
+
+Location* _find_location(CURL *handle)
+{
+    printf("Searching for user location by IP address...");
+    Location *location = find_location(handle);
+    printf(
+        "User location: City - %s; Country - %s\n", 
+        location->city, 
+        location->country
+    );
+
+    return location;
+}
 
 ServerArray* _parse_server_list()
 {
@@ -150,7 +178,6 @@ ServerArray* _parse_server_list()
     {
         cJSON *country = cJSON_GetObjectItemCaseSensitive(server_json, "country");
         cJSON *city = cJSON_GetObjectItemCaseSensitive(server_json, "city");
-        cJSON *provider = cJSON_GetObjectItemCaseSensitive(server_json, "provider");
         cJSON *host = cJSON_GetObjectItemCaseSensitive(server_json, "host");
         cJSON *id = cJSON_GetObjectItemCaseSensitive(server_json, "id");
 
@@ -158,7 +185,6 @@ ServerArray* _parse_server_list()
                 servers, 
                 country->valuestring, 
                 city->valuestring, 
-                provider->valuestring, 
                 host->valuestring, 
                 id->valueint
         );
