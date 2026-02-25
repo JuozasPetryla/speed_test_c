@@ -114,11 +114,20 @@ int main(int argc, char *argv[])
         _perform_speed_test(handle, UPLOAD, host);
     }
 
+    curl_easy_cleanup(handle);
+    destroy_location(location);
+    free((void*)host); 
+
     exit(0);
 }
 
 void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
 {
+    if (!host_url) {
+        perror("Host is NULL; exiting");
+        exit(1);
+    }
+
     curl_off_t speed = 0.0;
     CURLcode res_code = speed_test(handle, type, host_url, &speed);
     if (CURLE_OK != res_code) {
@@ -152,7 +161,7 @@ char* _find_best_host_by_location(CURL *handle, Location *location)
         destroy_server_array(servers);
         exit(1);
     }
-    char *host_copy = strdup(best_server->host);   
+    char *host_copy = strdup(best_server->host);
     destroy_server_array(servers);
 
     _print_best_server_message(location, host_copy);
@@ -201,6 +210,7 @@ ServerArray* _parse_server_list()
     }
 
     servers_json = cJSON_Parse(buffer);
+    free(buffer);
     if (!servers_json) {
         perror("Could not parse JSON\n");
         exit(1);
@@ -221,6 +231,9 @@ ServerArray* _parse_server_list()
                 id->valueint
         );
     }
+
+    cJSON_Delete(servers_json);
+    cJSON_Delete(server_json);
 
     return servers;
 }
