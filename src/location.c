@@ -47,7 +47,7 @@ Location* find_location(CURL *handle)
     cJSON* location_json = cJSON_Parse(response.response_body);
     free(response.response_body);
     if (!location_json) {
-        printf("Could not parse location response body");
+        perror("Could not parse location response body");
         return NULL;
     }
 
