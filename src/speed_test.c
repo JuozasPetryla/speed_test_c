@@ -110,11 +110,14 @@ Server* best_server_by_location(CURL *handle, ServerArray *server_array, Locatio
         Server *server = server_array->server[i];
         curl_off_t min_curr = 0.0;
         if (
-            strcmp(location->city, server->location->city) == 0 ||
-            strcmp(location->country, server->location->country) == 0
+            (location->city && strcmp(location->city, server->location->city) == 0) ||
+            (location->country && strcmp(location->country, server->location->country) == 0)
         ) {
             CURLcode res_code = _get_server_latency(handle, server->host, &min_curr);
-            if (CURLE_OK != res_code) continue;
+            if (CURLE_OK != res_code) {
+                printf("    Hostname - %s, continuing to other\n", server->host);
+                continue;
+            };
 
             if (min_curr && min_curr < min) {
                 min = min_curr;

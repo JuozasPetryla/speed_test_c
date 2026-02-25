@@ -12,11 +12,19 @@ Location* create_location(const char *country, const char *city)
 {
     Location* location = (Location*)malloc(sizeof(Location));
 
-    location->country = (char*)malloc(strlen(country) + 1);
-    location->city = (char*)malloc(strlen(city) + 1);
+    if (country) {
+        location->country = (char*)malloc(strlen(country) + 1);
+        strcpy(location->country, country);
+    } else {
+        location->country = NULL;
+    }
 
-    strcpy(location->country, country);
-    strcpy(location->city, city);
+    if (city) {
+        location->city = (char*)malloc(strlen(city) + 1);
+        strcpy(location->city, city);
+    } else {
+        location->city = NULL;
+    }
 
     return location;
 }
@@ -25,8 +33,8 @@ void destroy_location(Location* location)
 {
     if (!location) return;
 
-    free(location->country);
-    free(location->city);
+    if (location->country) free(location->country);
+    if (location->city) free(location->city);
 
     free(location);
 }

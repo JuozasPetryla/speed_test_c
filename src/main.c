@@ -18,6 +18,10 @@ ServerArray* _parse_server_list();
 Location* _find_location(CURL *handle);
 void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host);
 char* _find_best_host_by_location(CURL *handle, Location *location);
+char* _get_speed_type_name(SPEED_TEST_TYPE type);
+void _print_server_finding_message(Location *location);
+void _print_best_server_message(Location *location, char *host_copy);
+void _print_available_options();
 
 typedef struct {
     bool l_flag;
@@ -77,22 +81,22 @@ int main(int argc, char *argv[])
                 opt_flags.H_flag = true;
                 break;
             case 'h':
-                printf("Available options are hlb:d:u:\n");
-                break;
+                _print_available_options();
+                exit(0);
             case ':': 
-                printf("Option requires an argument\n");
-                break; 
+                printf("Option requires an argument; exiting\n");
+                exit(0); 
             case '?': 
-                printf("Unrecognized option\n");
-                break; 
+                printf("Unrecognized option; exiting\n");
+                exit(0); 
         } 
     }
 
     Location *location = NULL;
-    
+
     CURL *handle = curl_easy_init();
 
-    if (opt_flags.l_flag && !(opt_flags.C_flag || opt_flags.c_flag)) {
+    if (opt_flags.l_flag && !(opt_flags.C_flag || opt_flags.c_flag || opt_flags.H_flag)) {
         location = _find_location(handle);
     } else {
         location = create_location(country, city);
@@ -118,9 +122,19 @@ void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_ur
     curl_off_t speed = 0.0;
     CURLcode res_code = speed_test(handle, type, host_url, &speed);
     if (CURLE_OK != res_code) {
-        fprintf(stderr, "%s speed test failed for host %s\n", "Download", host_url);
+        fprintf(
+            stderr, 
+            "%s speed test failed for host %s\n", 
+            _get_speed_type_name(type), 
+            host_url
+        );
     }
-    printf("%s speed for host %s - %.2f Mb/s\n", "Download", host_url, (double)speed);
+    printf(
+        "--> %s speed for host %s - %.2f Mb/s\n", 
+        _get_speed_type_name(type), 
+        host_url, 
+        (double)speed
+    );
 }
 
 char* _find_best_host_by_location(CURL *handle, Location *location)
@@ -131,7 +145,7 @@ char* _find_best_host_by_location(CURL *handle, Location *location)
         exit(1);
     }
 
-    printf("Finding the best server in %s, %s...\n", location->city, location->country);
+    _print_server_finding_message(location);
     Server* best_server = best_server_by_location(handle, servers, location);
     if (!best_server) {
         printf("No server found for location\n");
@@ -141,12 +155,7 @@ char* _find_best_host_by_location(CURL *handle, Location *location)
     char *host_copy = strdup(best_server->host);   
     destroy_server_array(servers);
 
-    printf(
-        "Best server in location %s, %s - %s\n", 
-        location->city, 
-        location->country, 
-        host_copy
-    );
+    _print_best_server_message(location, host_copy);
     return host_copy;
 }
 
@@ -161,7 +170,7 @@ Location* _find_location(CURL *handle)
     }
 
     printf(
-        "User location: City - %s; Country - %s\n", 
+        "--> User location: City - %s; Country - %s\n", 
         location->city, 
         location->country
     );
@@ -216,4 +225,64 @@ ServerArray* _parse_server_list()
     return servers;
 }
 
+void _print_server_finding_message(Location *location)
+{
+    if (location->city && location->country) {
+        printf("Finding the best server in %s, %s...\n", location->city, location->country);
+        return;
+    }
+
+    if (location->city && !location->country) {
+        printf("Finding the best server in %s...\n", location->city);
+        return;
+    }
+
+    if (!location->city && location->country) {
+        printf("Finding the best server in %s...\n", location->country);
+        return;
+    }
+}
+
+void _print_best_server_message(Location *location, char *host_copy)
+{
+    if (location->city && location->country) {
+        printf("--> Best server in location %s, %s - %s\n", location->city, location->country, host_copy);
+        return;
+    }
+
+    if (location->city && !location->country) {
+        printf("--> Best server in location %s - %s\n", location->city, host_copy);
+        return;
+    }
+
+    if (!location->city && location->country) {
+        printf("--> Best server in location %s - %s\n", location->country, host_copy);
+        return;
+    }
+}
+
+void _print_available_options()
+{
+    printf("Available options are:\n");
+    printf("    - a -> Run full test on user's current location\n");
+    printf("    - d -> Run download speed test on user's current location\n");
+    printf("    - u -> Run upload test on user's current location\n");
+    printf("    - b -> Find the best server in user's current location\n");
+    printf("    - l -> Find user's current location\n");
+    printf("    - c -> Specify a city instead of user's location when running a test\n");
+    printf("    - C -> Specify a country instead of user's location when running a test\n");
+    printf("    - H -> Specify a hostname instead of the best host for specified location\n");
+}
+
+char* _get_speed_type_name(SPEED_TEST_TYPE type)
+{
+    switch (type) {
+        case DOWNLOAD:
+            return "Download";
+        case UPLOAD:
+            return "Upload";
+        default:
+            return "Default";
+    }
+}
 
