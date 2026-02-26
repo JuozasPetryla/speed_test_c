@@ -8,7 +8,7 @@
 #include "curl_util.h"
 
 #define CURL_USER_AGENT "curl/8.15.0"
-#define CURL_TIMEOUT 2
+#define CURL_TIMEOUT 15
 
 static size_t _write_callback(char *data, size_t size, size_t nmemb, void *user_data)
 {

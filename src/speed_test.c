@@ -13,7 +13,7 @@
 #define DOWNLOAD_ENDPOINT "/random4000x4000.jpg"
 #define UPLOAD_ENDPOINT "/upload"
 #define POST_SIZE (15LL * 1024 * 1024 * 1024 * 100)
-#define SPEED_TEST_TIMEOUT 15
+#define LATENCY_TIMEOUT 1
 
 bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint);
 FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle);
@@ -62,6 +62,7 @@ CURLcode _get_server_latency(CURL *handle, char *host_url, curl_off_t *latency)
     FILE *fp = _open_file_safe("/dev/null", "wb");
 
     set_common_opts(handle, host_url);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT, LATENCY_TIMEOUT);
     set_get_request_opts_file(handle, fp);
 
     CURLcode res_code = perform_request_safe(handle);
@@ -84,7 +85,6 @@ CURLcode speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url, cu
     snprintf(url, sizeof(url), "%s%s", host_url, endpoint);
 
     set_common_opts(handle, url);
-    curl_easy_setopt(handle, CURLOPT_TIMEOUT, SPEED_TEST_TIMEOUT);
     curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 0L);
 
     FILE *fp = _set_specific_opts(type, handle);

@@ -7,6 +7,7 @@
 #include "location.h"
 
 #define LOCATION_API_URL "http://ip-api.com/json/"
+#define LOCATION_API_TIMEOUT 5
 
 Location* create_location(const char *country, const char *city)
 {
@@ -44,6 +45,7 @@ Location* find_location(CURL *handle)
     Response response = { 0 };
 
     set_common_opts(handle, LOCATION_API_URL);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT, LOCATION_API_TIMEOUT);
     set_get_request_opts(handle, (void*)&response);
     
     CURLcode res_code = perform_request_safe_ignore_timeout(handle);
