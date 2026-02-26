@@ -22,6 +22,7 @@ char* _get_speed_type_name(SPEED_TEST_TYPE type);
 void _print_server_finding_message(Location *location);
 void _print_best_server_message(Location *location, char *host_copy);
 void _print_available_options();
+void _global_cleanup(CURL *handle, Location *location);
 
 typedef struct {
     bool l_flag;
@@ -35,6 +36,11 @@ typedef struct {
 
 int main(int argc, char *argv[]) 
 {
+    if (argc == 1) {
+        printf("Run ./build/main -h to see available arguments.\n");
+        exit(0);
+    }
+
     OptFlags opt_flags = { false, false, false, false, false, false, false };
 
     int opt;
@@ -92,6 +98,7 @@ int main(int argc, char *argv[])
         } 
     }
 
+
     Location *location = NULL;
 
     CURL *handle = curl_easy_init();
@@ -107,27 +114,32 @@ int main(int argc, char *argv[])
     }
 
     if (opt_flags.d_flag) {
+        if (!host) {
+            perror("Host is NULL; exiting");
+            _global_cleanup(handle, location);
+            exit(1);
+        }
         _perform_speed_test(handle, DOWNLOAD, host);
     }
 
     if (opt_flags.u_flag) {
+        if (!host) {
+            perror("Host is NULL; exiting");
+            _global_cleanup(handle, location);
+            exit(1);
+        }
         _perform_speed_test(handle, UPLOAD, host);
     }
 
-    curl_easy_cleanup(handle);
-    destroy_location(location);
-    free((void*)host); 
+    if (opt_flags.b_flag && !opt_flags.H_flag) free((void*)host); 
+
+    _global_cleanup(handle, location);
 
     exit(0);
 }
 
 void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
 {
-    if (!host_url) {
-        perror("Host is NULL; exiting");
-        exit(1);
-    }
-
     curl_off_t speed = 0.0;
     CURLcode res_code = speed_test(handle, type, host_url, &speed);
     if (CURLE_OK != res_code) {
@@ -151,13 +163,16 @@ char* _find_best_host_by_location(CURL *handle, Location *location)
     ServerArray *servers = _parse_server_list();
     if (!servers) {
         perror("Failed to parse servers list\n");
+        _global_cleanup(handle, location);
+        destroy_server_array(servers);
         exit(1);
     }
 
     _print_server_finding_message(location);
     Server* best_server = best_server_by_location(handle, servers, location);
     if (!best_server) {
-        printf("No server found for location\n");
+        perror("No server found for location\n");
+        _global_cleanup(handle, location);
         destroy_server_array(servers);
         exit(1);
     }
@@ -175,6 +190,7 @@ Location* _find_location(CURL *handle)
     Location *location = find_location(handle);
     if (!location || (!location->city && !location->country)) {
         perror("Location not found\n");
+        _global_cleanup(handle, location);
         exit(1);
     }
 
@@ -233,7 +249,6 @@ ServerArray* _parse_server_list()
     }
 
     cJSON_Delete(servers_json);
-    cJSON_Delete(server_json);
 
     return servers;
 }
@@ -297,5 +312,12 @@ char* _get_speed_type_name(SPEED_TEST_TYPE type)
         default:
             return "Default";
     }
+}
+
+void _global_cleanup(CURL *handle, Location *location)
+{
+    if (location) destroy_location(location);
+    if (handle) curl_easy_cleanup(handle);
+    curl_global_cleanup();
 }
 

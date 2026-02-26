@@ -64,6 +64,8 @@ Location* find_location(CURL *handle)
 
     Location *location = create_location(country->valuestring, city->valuestring);
 
+    cJSON_Delete(location_json);
+
     return location;
 }
 
