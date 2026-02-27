@@ -15,21 +15,21 @@ typedef struct {
 	size_t capacity;
 } ServerArray;
 
-Server* create_server(
+extern Server* create_server(
 	const char *country, 
 	const char *city, 
 	const char *host, 
 	int id
 );
-void append_to_server_array(
+extern void append_to_server_array(
     	ServerArray *array,
 	const char *country, 
 	const char *city, 
 	const char *host,
 	int id
 );
-ServerArray* init_server_array(size_t init_capacity);
-void destroy_server(Server* server);
-void destroy_server_array(ServerArray *array);
+extern ServerArray* init_server_array(size_t init_capacity);
+extern void destroy_server(Server* server);
+extern void destroy_server_array(ServerArray *array);
 
 #endif

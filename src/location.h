@@ -8,8 +8,8 @@ typedef struct {
 	char* city;
 } Location;
 
-Location* find_location(CURL *handle);
-Location* create_location(const char *country, const char *city);
-void destroy_location(Location* location);
+extern Location* find_location(CURL *handle);
+extern Location* create_location(const char *country, const char *city);
+extern void destroy_location(Location* location);
 
 #endif

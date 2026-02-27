@@ -10,7 +10,7 @@
 #define CURL_USER_AGENT "curl/8.15.0"
 #define CURL_TIMEOUT 15
 
-static size_t _write_callback(char *data, size_t size, size_t nmemb, void *user_data)
+static size_t _write_callback(const char *data, size_t size, size_t nmemb, void *user_data)
 {
   size_t realsize = nmemb * size;
   Response *res = (Response*)user_data;

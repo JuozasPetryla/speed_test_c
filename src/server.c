@@ -8,8 +8,14 @@
 ServerArray* init_server_array(size_t init_capacity)
 {
     ServerArray *array = malloc(sizeof(ServerArray));
+    if (!array) return NULL;
 
     array->server = malloc(sizeof(Server*) * init_capacity);
+    if (!array->server) { 
+        free(array);
+        return NULL;
+    }
+
     array->size = 0;
     array->capacity = init_capacity;
 
@@ -55,9 +61,15 @@ Server* create_server(
 )
 {
     Server *server = (Server*)malloc(sizeof(Server));
+    if (!server) return NULL;
 
     server->location = create_location(country, city);
     server->host = (char*)malloc(strlen(host) + 1);
+    if (!server->host) {
+        free(server);
+        return NULL;
+    }
+
     server->id = id;
 
     strcpy(server->host, host);

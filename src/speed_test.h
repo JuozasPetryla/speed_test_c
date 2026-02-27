@@ -10,7 +10,7 @@ typedef enum {
 	UPLOAD
 } SPEED_TEST_TYPE;
 
-CURLcode speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url, curl_off_t *speed);
-Server* best_server_by_location(CURL *handle, ServerArray *server_array, Location *location);
+extern CURLcode speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url, curl_off_t *speed);
+extern Server* best_server_by_location(CURL *handle, ServerArray *server_array, const Location *location);
 
 #endif

@@ -14,15 +14,15 @@
 #define INIT_SERVER_ARRAY_SIZE 8192
 #define SERVER_LIST_FILENAME "data/speedtest_server_list.json"
 
-ServerArray* _parse_server_list();
-Location* _find_location(CURL *handle);
-void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host);
-char* _find_best_host_by_location(CURL *handle, Location *location);
-char* _get_speed_type_name(SPEED_TEST_TYPE type);
-void _print_server_finding_message(Location *location);
-void _print_best_server_message(Location *location, char *host_copy);
-void _print_available_options();
-void _global_cleanup(CURL *handle, Location *location);
+static ServerArray* _parse_server_list();
+static Location* _find_location(CURL *handle);
+static void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host);
+static char* _find_best_host_by_location(CURL *handle, Location *location);
+static char* _get_speed_type_name(SPEED_TEST_TYPE type);
+static void _print_server_finding_message(const Location *location);
+static void _print_best_server_message(const Location *location, const char *host_copy);
+static void _print_available_options();
+static void _global_cleanup(CURL *handle, Location *location);
 
 typedef struct {
     bool l_flag;
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
     exit(0);
 }
 
-void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
+static void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url)
 {
     curl_off_t speed = 0.0;
     CURLcode res_code = speed_test(handle, type, host_url, &speed);
@@ -158,7 +158,7 @@ void _perform_speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_ur
     );
 }
 
-char* _find_best_host_by_location(CURL *handle, Location *location)
+static char* _find_best_host_by_location(CURL *handle, Location *location)
 {
     ServerArray *servers = _parse_server_list();
     if (!servers) {
@@ -169,7 +169,7 @@ char* _find_best_host_by_location(CURL *handle, Location *location)
     }
 
     _print_server_finding_message(location);
-    Server* best_server = best_server_by_location(handle, servers, location);
+    const Server* best_server = best_server_by_location(handle, servers, location);
     if (!best_server) {
         perror("No server found for location\n");
         _global_cleanup(handle, location);
@@ -183,7 +183,7 @@ char* _find_best_host_by_location(CURL *handle, Location *location)
     return host_copy;
 }
 
-Location* _find_location(CURL *handle)
+static Location* _find_location(CURL *handle)
 {
     printf("Searching for user location by IP address...\n");
 
@@ -203,7 +203,7 @@ Location* _find_location(CURL *handle)
     return location;
 }
 
-ServerArray* _parse_server_list()
+static ServerArray* _parse_server_list()
 {
     FILE *fp = _open_file_safe(SERVER_LIST_FILENAME, "r");
 
@@ -212,6 +212,8 @@ ServerArray* _parse_server_list()
     fseek(fp, 0, SEEK_SET);
 
     char *buffer = (char*)malloc((size_t)len + 1);
+    if (!buffer) return NULL;
+
     fread(buffer, sizeof(char), len, fp);
     fclose(fp);
     buffer[len] = '\0';
@@ -234,10 +236,10 @@ ServerArray* _parse_server_list()
 
     cJSON_ArrayForEach(server_json, servers_json)
     {
-        cJSON *country = cJSON_GetObjectItemCaseSensitive(server_json, "country");
-        cJSON *city = cJSON_GetObjectItemCaseSensitive(server_json, "city");
-        cJSON *host = cJSON_GetObjectItemCaseSensitive(server_json, "host");
-        cJSON *id = cJSON_GetObjectItemCaseSensitive(server_json, "id");
+        const cJSON *country = cJSON_GetObjectItemCaseSensitive(server_json, "country");
+        const cJSON *city = cJSON_GetObjectItemCaseSensitive(server_json, "city");
+        const cJSON *host = cJSON_GetObjectItemCaseSensitive(server_json, "host");
+        const cJSON *id = cJSON_GetObjectItemCaseSensitive(server_json, "id");
 
         append_to_server_array(
                 servers, 
@@ -253,7 +255,7 @@ ServerArray* _parse_server_list()
     return servers;
 }
 
-void _print_server_finding_message(Location *location)
+static void _print_server_finding_message(const Location *location)
 {
     if (location->city && location->country) {
         printf("Finding the best server in %s, %s...\n", location->city, location->country);
@@ -271,7 +273,7 @@ void _print_server_finding_message(Location *location)
     }
 }
 
-void _print_best_server_message(Location *location, char *host_copy)
+static void _print_best_server_message(const Location *location, const char *host_copy)
 {
     if (location->city && location->country) {
         printf("--> Best server in location %s, %s - %s\n", location->city, location->country, host_copy);
@@ -289,7 +291,7 @@ void _print_best_server_message(Location *location, char *host_copy)
     }
 }
 
-void _print_available_options()
+static void _print_available_options()
 {
     printf("Available options are:\n");
     printf("    - a -> Run full test on user's current location\n");
@@ -302,7 +304,7 @@ void _print_available_options()
     printf("    - H -> Specify a hostname instead of the best host for specified location\n");
 }
 
-char* _get_speed_type_name(SPEED_TEST_TYPE type)
+static char* _get_speed_type_name(SPEED_TEST_TYPE type)
 {
     switch (type) {
         case DOWNLOAD:
@@ -314,7 +316,7 @@ char* _get_speed_type_name(SPEED_TEST_TYPE type)
     }
 }
 
-void _global_cleanup(CURL *handle, Location *location)
+static void _global_cleanup(CURL *handle, Location *location)
 {
     if (location) destroy_location(location);
     if (handle) curl_easy_cleanup(handle);

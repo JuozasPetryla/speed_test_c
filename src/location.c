@@ -12,9 +12,14 @@
 Location* create_location(const char *country, const char *city)
 {
     Location* location = (Location*)malloc(sizeof(Location));
+    if (!location) return NULL;
 
     if (country) {
         location->country = (char*)malloc(strlen(country) + 1);
+        if (!location->country) {
+            free(location);
+            return NULL;
+        }
         strcpy(location->country, country);
     } else {
         location->country = NULL;
@@ -22,6 +27,10 @@ Location* create_location(const char *country, const char *city)
 
     if (city) {
         location->city = (char*)malloc(strlen(city) + 1);
+        if (!location->city) {
+            free(location);
+            return NULL;
+        }
         strcpy(location->city, city);
     } else {
         location->city = NULL;
@@ -61,8 +70,8 @@ Location* find_location(CURL *handle)
         return NULL;
     }
 
-    cJSON *country = cJSON_GetObjectItemCaseSensitive(location_json, "country");
-    cJSON *city = cJSON_GetObjectItemCaseSensitive(location_json, "city");
+    const cJSON *country = cJSON_GetObjectItemCaseSensitive(location_json, "country");
+    const cJSON *city = cJSON_GetObjectItemCaseSensitive(location_json, "city");
 
     Location *location = create_location(country->valuestring, city->valuestring);
 

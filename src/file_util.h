@@ -3,6 +3,6 @@
 
 #include <stdio.h>
 
-FILE* _open_file_safe(const char *filename, const char *mode);
+extern FILE* _open_file_safe(const char *filename, const char *mode);
 
 #endif

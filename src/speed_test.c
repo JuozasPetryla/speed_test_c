@@ -15,15 +15,15 @@
 #define POST_SIZE (15LL * 1024 * 1024 * 1024 * 100)
 #define LATENCY_TIMEOUT 1
 
-bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint);
-FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle);
-CURLcode _get_server_latency(CURL *handle, char *host_url, curl_off_t *latency);
+static bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint);
+static FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle);
+static CURLcode _get_server_latency(CURL *handle, char *host_url, curl_off_t *latency);
 
 static curl_off_t calculate_speed_megabits(curl_off_t speed) {
     return speed / 1024.0 / 1024.0 * 8;
 }
 
-bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint)
+static bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **endpoint)
 {
     switch (type) {
         case DOWNLOAD:
@@ -39,7 +39,7 @@ bool _get_speed_test_params(SPEED_TEST_TYPE type, CURLINFO *info, const char **e
     }
 }
 
-FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
+static FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
 {
     FILE *fp = NULL;
     switch (type) {
@@ -57,7 +57,7 @@ FILE* _set_specific_opts(SPEED_TEST_TYPE type, CURL *handle)
     return fp;
 }
 
-CURLcode _get_server_latency(CURL *handle, char *host_url, curl_off_t *latency)
+static CURLcode _get_server_latency(CURL *handle, char *host_url, curl_off_t *latency)
 {
     FILE *fp = _open_file_safe("/dev/null", "wb");
 
@@ -101,7 +101,7 @@ CURLcode speed_test(CURL *handle, SPEED_TEST_TYPE type, const char *host_url, cu
     return res_code;
 }
 
-Server* best_server_by_location(CURL *handle, ServerArray *server_array, Location *location)
+Server* best_server_by_location(CURL *handle, ServerArray *server_array, const Location *location)
 {
     double min = DBL_MAX;
     Server *best_server = NULL;
